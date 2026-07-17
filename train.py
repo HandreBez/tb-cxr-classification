@@ -4,7 +4,6 @@ from model import tbxrayCNN
 from data import get_dataloaders, get_transforms, all_images
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 model = tbxrayCNN()
 model = model.to(device)
 
@@ -12,30 +11,63 @@ criterion = nn.CrossEntropyLoss()
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-for epoch in range(15):
+def evaluate(model, test_loader, criterion, device):
+    model.eval()
+
     running_loss = 0.0
     correct, total = 0, 0
 
-    for images, labels in train_loader:
+    with torch.no_grad():
+        for images, labels in test_loader:
+            images = images.to(device)
+            labels = labels.to(device)
 
-        images  = images.to(device)
-        labels  = labels.to(device)
+            logits = model(images)
+            loss = criterion(logits, labels)
 
-        optimizer.zero_grad()
+            running_loss += loss.item()
+            predictions = logits.argmax(dim=1)
+            correct += (predictions == labels).sum().item()
+            total += labels.size(0)
 
-        logits = model(images)
+    avg_loss = running_loss / len(test_loader)
+    accuracy = correct / total * 100
 
-        total += labels.size(0)
-        predictions = logits.argmax(dim=1)
-        correct += (predictions == labels).sum().item()
-        loss = criterion(logits, labels)
-        
-        loss.backward()
-        optimizer.step()
+    return avg_loss, accuracy
 
-        running_loss += loss.item()
-        
+if __name__ == "__main__":
+    train_transform = get_transforms()
+    train_loader, test_loader = get_dataloaders(all_images, train_transform, num_workers=4)
 
-    avg_loss = running_loss / len(train_loader)
+    for epoch in range(15):
+        running_loss = 0.0
+        correct, total = 0, 0
 
-    print(f"Epoch: {epoch}  Avg Loss: {avg_loss} Accuracy: %{correct/total*100} ")
+        for images, labels in train_loader:
+
+            images  = images.to(device)
+            labels  = labels.to(device)
+
+            optimizer.zero_grad()
+
+            logits = model(images)
+
+            total += labels.size(0)
+            predictions = logits.argmax(dim=1)
+            correct += (predictions == labels).sum().item()
+            loss = criterion(logits, labels)
+            
+            loss.backward()
+            optimizer.step()
+
+            running_loss += loss.item()
+            
+
+        avg_loss = running_loss / len(train_loader)
+
+        print(f"Epoch: {epoch}  Avg Loss: {avg_loss} Accuracy: %{correct/total*100} ")
+    
+    test_loss, test_accuracy = evaluate(model, test_loader, criterion, device)
+    print(f"\nTest Loss: {test_loss:.4f}  Test Accuracy: {test_accuracy:.2f}%")
+
+
