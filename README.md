@@ -4,7 +4,11 @@ Tuberculosis detection from chest X-rays using transfer learning, built as Proje
 
 ## Question
 
-*[Fill in once framed — e.g. "Does ImageNet transfer learning improve TB detection over a from-scratch CNN baseline, given a small labeled dataset (~800 images total)?"]*
+**Does ImageNet pretraining reduce the train/test generalization gap in TB detection from chest X-rays under a small-data regime (~800 images, Montgomery + Shenzhen), independent of the increase in model capacity — and does this effect differ between ResNet-18 and DenseNet-121?**
+
+The outcome measured is the train/test *generalization gap* (not just raw accuracy) — motivated by the baseline result below, which showed a clear gap (93.06% train vs. 81.25% test accuracy). The "independent of model capacity" clause requires a from-scratch (randomly initialized) ResNet-18 run as a capacity-matched control, so that any improvement from the pretrained ResNet-18 run can be attributed to the pretrained weights specifically, not just to using a bigger/deeper architecture than the baseline CNN.
+
+*Fallback, if time is tight:* drop the "independent of model capacity" clause (i.e. skip the from-scratch ResNet-18 control) and answer the simpler question — does pretraining reduce the generalization gap, full stop. Methodologically weaker but still a legitimate question, and cheap to upgrade later if a spare training run becomes available.
 
 ## Method
 
@@ -12,6 +16,7 @@ Tuberculosis detection from chest X-rays using transfer learning, built as Proje
 - **Preprocessing:** Grayscale conversion (1 channel), resized to 224×224 (matches ImageNet input size, chosen ahead of next week's transfer learning experiments so the pipeline doesn't need reworking)
 - **Split:** 90/10 train/test (720 train / 80 test) — favored over 80/20 given the small dataset size
 - **Baseline:** CNN trained from scratch — 3 conv layers (1→8→16→32 channels), 3×3 kernels, padding=1, max pooling after each conv, flatten to 25,088, linear output to 2 classes
+- **Capacity control:** ResNet-18, randomly initialized (no pretrained weights) — isolates the effect of model capacity/architecture from the effect of pretraining. *Not yet started.*
 - **Transfer learning:** Fine-tuned ResNet-18 / DenseNet-121 (torchvision pretrained weights) — *not yet started, planned for next week*
 - **Augmentation:** *not yet applied to the baseline — planned as a next step, see Limitations*
 - **Training:** Adam optimizer (lr=0.001), CrossEntropyLoss, 15 epochs, batch size 32
@@ -20,17 +25,18 @@ Tuberculosis detection from chest X-rays using transfer learning, built as Proje
 
 ## Results
 
-Baseline CNN, trained from scratch, 15 epochs:
+15 epochs each, same 90/10 split, single run (see Limitations re: split stability):
 
-| Model | Train Accuracy | Train Loss | Test Accuracy | Test Loss |
-|---|---|---|---|---|
-| Baseline CNN (scratch) | 93.06% | 0.167 | 81.25% | 0.469 |
-| ResNet-18 (fine-tuned) | | | | |
-| DenseNet-121 (fine-tuned) | | | | |
+| Model | Train Acc | Train Loss | Test Acc | Test Loss | Gap (Train − Test Acc) |
+|---|---|---|---|---|---|
+| Baseline CNN (scratch) | 93.06% | 0.167 | 81.25% | 0.469 | 11.81 pts |
+| ResNet-18 (scratch, capacity control) | | | | | |
+| ResNet-18 (pretrained) | | | | | |
+| DenseNet-121 (pretrained) | | | | | |
 
 *AUC, sensitivity, specificity not yet computed — only accuracy/loss tracked so far.*
 
-**Honest read:** there's a clear gap between train (93%) and test (81%) accuracy, and train loss (0.167) is roughly a third of test loss (0.469) — a real overfitting signature, not unexpected given ~800 total images against a model with ~25k parameters in the final layer alone (worked out by hand before writing the architecture). This is exactly the kind of gap transfer learning next week is expected to help close, since pretrained ImageNet features should generalize better than features learned from scratch on this little data.
+**Honest read:** the baseline shows a clear ~12-point generalization gap (93.06% train vs. 81.25% test accuracy), and train loss (0.167) is roughly a third of test loss (0.469) — a real overfitting signature, not unexpected given ~800 total images against a model with ~25k parameters in the final layer alone (worked out by hand before writing the architecture). The research question above is built directly around this gap: the ResNet-18 (scratch) row exists specifically to check whether a bigger/deeper architecture alone narrows this gap, so that any further narrowing seen in the pretrained rows can be attributed to the pretrained weights rather than just model capacity.
 
 ## Limitations
 
@@ -41,6 +47,7 @@ Baseline CNN, trained from scratch, 15 epochs:
 - No class imbalance check performed yet
 - Test set is small (80 images) — each image is ~1.25 percentage points, so the 81.25% test accuracy has real sampling noise; it will vary somewhat between runs
 - Labels are sourced from filename convention (`_0`/`_1` suffix), not the free-text radiologist findings, since the free text is inconsistent and non-standardized across cases
+- All results are from a single 90/10 train/test split. The generalization gap reported (e.g. the baseline's 11.81 points) can be measured and reported, but with n≈800 and one split, its *stability* can't be strongly claimed — a different random split could plausibly move it a few points in either direction. This is a real scope limitation of the current setup, not a flaw in the research question itself; a more rigorous version (k-fold cross-validation) is a reasonable future extension if time allows
 
 ## Setup
 
