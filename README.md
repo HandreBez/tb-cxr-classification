@@ -64,7 +64,7 @@ python train.py   # trains baseline CNN for 15 epochs, then evaluates on test se
 - [x] Training loop (with per-epoch loss/accuracy)
 - [x] Evaluation loop (test-set loss/accuracy)
 - [x] First baseline result recorded (93.06% train / 81.25% test accuracy)
-- [ ] Research question formally locked in
+- [x] Research question formally locked in
 - [ ] Data augmentation added to baseline
 - [ ] Transfer learning: ResNet-18
 - [ ] Transfer learning: DenseNet-121
