@@ -53,8 +53,8 @@ The outcome measured is the train/test *generalization gap* (not just raw accura
 
 ```bash
 pip install torch torchvision pillow
-python data.py    # sanity check: prints dataset counts and one batch shape
-python train.py   # trains baseline CNN for 15 epochs, then evaluates on test set
+python data.py    # sanity check: prints dataset counts and one batch shape.
+python train.py   # trains baseline CNN for 15 epochs, then evaluates on test set.
 ```
 
 ## Status
