@@ -8,7 +8,6 @@ Tuberculosis detection from chest X-rays using transfer learning, built as Proje
 
 The outcome measured is the train/test *generalization gap* (not just raw accuracy) — motivated by the baseline result below, which showed a clear gap (93.06% train vs. 81.25% test accuracy). The "independent of model capacity" clause requires a from-scratch (randomly initialized) ResNet-18 run as a capacity-matched control, so that any improvement from the pretrained ResNet-18 run can be attributed to the pretrained weights specifically, not just to using a bigger/deeper architecture than the baseline CNN.
 
-*Fallback, if time is tight:* drop the "independent of model capacity" clause (i.e. skip the from-scratch ResNet-18 control) and answer the simpler question — does pretraining reduce the generalization gap, full stop. Methodologically weaker but still a legitimate question, and cheap to upgrade later if a spare training run becomes available.
 
 ## Method
 
