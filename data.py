@@ -77,4 +77,5 @@ if __name__ == "__main__":
     images, labels = next(iter(train_loader))
     print("Batch shape:", images.shape)
     print("Labels shape:", labels.shape)
+    print(len(all_images))
 

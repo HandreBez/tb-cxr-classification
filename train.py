@@ -1,9 +1,11 @@
 import torch
 import torch.nn as nn
 from model import tbxrayCNN
+from model import ResNet18TB
 from data import get_dataloaders, get_transforms, all_images
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#model = tbxrayCNN()
 model = tbxrayCNN()
 model = model.to(device)
 
