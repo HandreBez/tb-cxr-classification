@@ -53,7 +53,13 @@ def get_transforms():
         transforms.Normalize((0.5,), (0.5,))
         ])
 
-    return train_transform
+    test_transform = transforms.Compose([
+            transforms.Resize((224,224)),
+            transforms.ToTensor(),                
+            transforms.Normalize((0.5,), (0.5,))
+            ])
+
+    return train_transform, test_transform
     
 all_images = shenzhen_images + montgomery_images
 
