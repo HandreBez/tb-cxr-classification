@@ -67,7 +67,7 @@ python train.py   # trains selected model for 15 epochs, then evaluates on test 
 - [x] First baseline result recorded (93.06% train / 81.25% test accuracy)
 - [x] Research question formally locked in
 - [x] ResNet-18 (scratch, capacity control) architecture built and trained
-- [X] Data augmentation added to baseline
+- [ ] Data augmentation added to baseline
 - [ ] Transfer learning: ResNet-18 (pretrained)
 - [ ] Transfer learning: DenseNet-121 (pretrained)
 - [ ] W&B experiment tracking
