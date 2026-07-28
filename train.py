@@ -2,16 +2,31 @@ import torch
 import torch.nn as nn
 from model import tbxrayCNN
 from model import ResNet18TB
+from model import ResNet18TBPretrained
 from data import get_dataloaders, get_transforms, all_images
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = tbxrayCNN()
+#model = tbxrayCNN()
 #model = ResNet18TB()
+model = ResNet18TBPretrained()
 model = model.to(device)
 
 criterion = nn.CrossEntropyLoss()
 
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+if isinstance(model, ResNet18TBPretrained):
+    backbone_params = []
+    fc_params = []
+    for name, param in model.named_parameters():
+        if name.startswith("resnet.fc"):
+            fc_params.append(param)
+        else:
+            backbone_params.append(param)
+    optimizer = torch.optim.Adam([
+        {"params": backbone_params, "lr": 0.0001},
+        {"params": fc_params, "lr": 0.001},
+    ])
+else:
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 def evaluate(model, test_loader, criterion, device):
     model.eval()

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
+import enum 
 
 class tbxrayCNN(nn.Module):
     def __init__(self):
@@ -51,12 +52,27 @@ class ResNet18TB(nn.Module):
 
     def forward(self, x):
         return self.resnet(x)
+
+class ResNet18TBPretrained(nn.Module):
+    def __init__(self):
+        super().__init__()
+                    
+        self.resnet = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+        cloned = self.resnet.conv1.weight.data.clone()
+        averaged = cloned.mean(dim=1, keepdim=True)
+        self.resnet.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.resnet.conv1.weight.data = averaged
+        self.resnet.fc = nn.Linear(512, 2)
+
+    def forward(self, x):
+        return self.resnet(x)
+
             
 if __name__ == "__main__":
-    model = ResNet18TB()
+    model = ResNet18TBPretrained()
     dummy_input = torch.randn(1, 1, 224, 224)
     output = model(dummy_input)
     print("Output shape:", output.shape)
-
+    
             
 
