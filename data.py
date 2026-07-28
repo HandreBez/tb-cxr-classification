@@ -52,7 +52,7 @@ def get_transforms():
     train_transform = transforms.Compose([
         transforms.Resize((224,224)),
         transforms.RandomCrop(224, padding=12),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2),
+        transforms.ColorJitter(brightness=0.1, contrast=0.1),
         transforms.ToTensor(),                
         transforms.Normalize((0.5,), (0.5,))
         ])
