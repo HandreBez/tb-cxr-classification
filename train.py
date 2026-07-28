@@ -6,7 +6,7 @@ from data import get_dataloaders, get_transforms, all_images
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #model = tbxrayCNN()
-model = tbxrayCNN()
+model = ResNet18TB()
 model = model.to(device)
 
 criterion = nn.CrossEntropyLoss()
@@ -38,7 +38,7 @@ def evaluate(model, test_loader, criterion, device):
     return avg_loss, accuracy
 
 if __name__ == "__main__":
-    train_loader, test_loader = get_dataloaders(all_images, num_workers=4)
+    train_loader, test_loader = get_dataloaders(all_images, num_workers=4, augment=False)
 
     for epoch in range(15):
         running_loss = 0.0

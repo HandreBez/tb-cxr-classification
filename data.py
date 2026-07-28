@@ -48,14 +48,21 @@ class TBXrayDataset(Dataset):
         else:
             return image, label
         
-def get_transforms():
-    train_transform = transforms.Compose([
-        transforms.Resize((224,224)),
-        transforms.RandomCrop(224, padding=12),
-        transforms.ColorJitter(brightness=0.1, contrast=0.1),
-        transforms.ToTensor(),                
-        transforms.Normalize((0.5,), (0.5,))
-        ])
+def get_transforms(augment=True):
+    if augment:
+        train_transform = transforms.Compose([
+            transforms.Resize((224,224)),
+            transforms.RandomCrop(224, padding=12),
+            transforms.ColorJitter(brightness=0.1, contrast=0.1),
+            transforms.ToTensor(),                
+            transforms.Normalize((0.5,), (0.5,))
+            ])
+    else:
+        train_transform = transforms.Compose([
+            transforms.Resize((224,224)),
+            transforms.ToTensor(),                
+            transforms.Normalize((0.5,), (0.5,))
+            ])
 
     test_transform = transforms.Compose([
             transforms.Resize((224,224)),
@@ -67,12 +74,14 @@ def get_transforms():
     
 all_images = shenzhen_images + montgomery_images
 
-def get_dataloaders(all_images, batch_size=32, train_ratio=0.9, num_workers=2):
+def get_dataloaders(all_images, batch_size=32, train_ratio=0.9, num_workers=2, augment = False):
     train_size = int(len(all_images) * train_ratio)
     test_size = len(all_images) - train_size
-
-    train_transform, test_transform = get_transforms()
     
+
+    train_transform, test_transform = get_transforms(augment=augment)
+    
+    random.seed(42)
     random.shuffle(all_images)
 
     train_images = all_images[:train_size]
@@ -88,8 +97,7 @@ def get_dataloaders(all_images, batch_size=32, train_ratio=0.9, num_workers=2):
     return train_loader, test_loader
 
 if __name__ == "__main__":
-    train_transform = get_transforms()
-    train_loader, test_loader = get_dataloaders(all_images, train_transform)
+    train_loader, test_loader = get_dataloaders(all_images)
 
     images, labels = next(iter(train_loader))
     print("Batch shape:", images.shape)
