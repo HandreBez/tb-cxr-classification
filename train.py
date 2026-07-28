@@ -38,8 +38,7 @@ def evaluate(model, test_loader, criterion, device):
     return avg_loss, accuracy
 
 if __name__ == "__main__":
-    train_transform = get_transforms()
-    train_loader, test_loader = get_dataloaders(all_images, train_transform, num_workers=4)
+    train_loader, test_loader = get_dataloaders(all_images, num_workers=4)
 
     for epoch in range(15):
         running_loss = 0.0

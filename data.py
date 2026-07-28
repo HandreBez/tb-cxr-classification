@@ -1,3 +1,5 @@
+import random
+
 import torch
 from pathlib import Path
 from torchvision import transforms
@@ -49,6 +51,8 @@ class TBXrayDataset(Dataset):
 def get_transforms():
     train_transform = transforms.Compose([
         transforms.Resize((224,224)),
+        transforms.RandomCrop(224, padding=12),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2),
         transforms.ToTensor(),                
         transforms.Normalize((0.5,), (0.5,))
         ])
@@ -63,13 +67,20 @@ def get_transforms():
     
 all_images = shenzhen_images + montgomery_images
 
-def get_dataloaders(all_images, transform, batch_size=32, train_ratio=0.9, num_workers=2):
-    dataset = TBXrayDataset(all_images, transform)
-
+def get_dataloaders(all_images, batch_size=32, train_ratio=0.9, num_workers=2):
     train_size = int(len(all_images) * train_ratio)
     test_size = len(all_images) - train_size
 
-    train_set, test_set = random_split(dataset, [train_size, test_size])
+    train_transform, test_transform = get_transforms()
+    
+    random.shuffle(all_images)
+
+    train_images = all_images[:train_size]
+    test_images = all_images[train_size:]
+
+    train_set = TBXrayDataset(train_images, train_transform)
+    test_set = TBXrayDataset(test_images, test_transform)  
+
 
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=num_workers)
     test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=num_workers)
