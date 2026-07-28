@@ -7,13 +7,15 @@ from data import get_dataloaders, get_transforms, all_images
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #model = tbxrayCNN()
-#model = ResNet18TB()
-model = ResNet18TBPretrained()
+model = ResNet18TB()
+#model = ResNet18TBPretrained()
 model = model.to(device)
 
 criterion = nn.CrossEntropyLoss()
 
-if isinstance(model, ResNet18TBPretrained):
+use_differential_lr = True   # flip to False to use a single uniform LR for the active model
+
+if use_differential_lr:
     backbone_params = []
     fc_params = []
     for name, param in model.named_parameters():
@@ -53,7 +55,7 @@ def evaluate(model, test_loader, criterion, device):
     return avg_loss, accuracy
 
 if __name__ == "__main__":
-    train_loader, test_loader = get_dataloaders(all_images, num_workers=4, augment=True)
+    train_loader, test_loader = get_dataloaders(all_images, num_workers=6, augment=True)
 
     for epoch in range(15):
         running_loss = 0.0

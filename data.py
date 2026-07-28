@@ -91,8 +91,8 @@ def get_dataloaders(all_images, batch_size=32, train_ratio=0.9, num_workers=2, a
     test_set = TBXrayDataset(test_images, test_transform)  
 
 
-    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
+    test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True)
 
     return train_loader, test_loader
 
