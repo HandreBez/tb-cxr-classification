@@ -23,8 +23,8 @@ def collect_images(folder_path):
     return image_list
 
 
-shenzhen_images = collect_images(Path("data/Shenzhen/images/images"))
-montgomery_images = collect_images(Path("data/Montgomery/images/images"))
+shenzhen_images = collect_images(Path("data/cache/Shenzhen"))
+montgomery_images = collect_images(Path("data/cache/Montgomery"))
 
 class TBXrayDataset(Dataset):
 

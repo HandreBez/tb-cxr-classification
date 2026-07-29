@@ -15,6 +15,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = DenseNet121TBScratch()
 model = model.to(device)
 
+run_name = "densenet121_scratch"
+
 criterion = nn.CrossEntropyLoss()
 
 use_differential_lr = True   # flip to False to use a single uniform LR for the active model
@@ -40,6 +42,9 @@ def evaluate(model, test_loader, criterion, device):
     running_loss = 0.0
     correct, total = 0, 0
 
+    all_probs = []
+    all_labels = []
+
     with torch.no_grad():
         for images, labels in test_loader:
             images = images.to(device)
@@ -50,13 +55,21 @@ def evaluate(model, test_loader, criterion, device):
 
             running_loss += loss.item()
             predictions = logits.argmax(dim=1)
+
+            probs = torch.softmax(logits, dim=1)
+            tb_probs = probs[:, 1]
+
+            all_probs.extend(tb_probs.cpu().tolist())
+            all_labels.extend(labels.cpu().tolist())
+
+
             correct += (predictions == labels).sum().item()
             total += labels.size(0)
 
     avg_loss = running_loss / len(test_loader)
     accuracy = correct / total * 100
 
-    return avg_loss, accuracy
+    return avg_loss, accuracy, all_labels, all_probs
 
 if __name__ == "__main__":
     train_loader, test_loader = get_dataloaders(all_images, num_workers=6, augment=True)
@@ -89,7 +102,8 @@ if __name__ == "__main__":
 
         print(f"Epoch: {epoch}  Avg Loss: {avg_loss} Accuracy: %{correct/total*100} ")
     
-    test_loss, test_accuracy = evaluate(model, test_loader, criterion, device)
+    test_loss, test_accuracy, all_labels, all_probs = evaluate(model, test_loader, criterion, device)
+    torch.save({"labels": all_labels, "probs": all_probs}, f"{run_name}_predictions.pt")
     print(f"\nTest Loss: {test_loss:.4f}  Test Accuracy: {test_accuracy:.2f}%")
 
 
