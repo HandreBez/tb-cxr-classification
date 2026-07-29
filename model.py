@@ -67,9 +67,34 @@ class ResNet18TBPretrained(nn.Module):
     def forward(self, x):
         return self.resnet(x)
 
+class DenseNet121TBScratch(nn.Module):
+    def __init__(self):
+        super().__init__()
+        
+        self.densenet = models.densenet121(weights=None)
+        self.densenet.features.conv0 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.densenet.classifier = nn.Linear(1024, 2)
+
+    def forward(self, x):
+        return self.densenet(x)
+
+class DenseNet121TB(nn.Module):
+    def __init__(self):
+        super().__init__()
+                    
+        self.densenet = models.densenet121(weights=models.DenseNet121_Weights.DEFAULT)
+        cloned = self.densenet.features.conv0.weight.data.clone()
+        averaged = cloned.mean(dim=1, keepdim=True)
+        self.densenet.features.conv0 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.densenet.features.conv0.weight.data = averaged
+        self.densenet.classifier = nn.Linear(1024, 2)
+
+    def forward(self, x):
+        return self.densenet(x)
+
             
 if __name__ == "__main__":
-    model = ResNet18TBPretrained()
+    model = DenseNet121TBScratch()
     dummy_input = torch.randn(1, 1, 224, 224)
     output = model(dummy_input)
     print("Output shape:", output.shape)

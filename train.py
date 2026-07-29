@@ -3,12 +3,16 @@ import torch.nn as nn
 from model import tbxrayCNN
 from model import ResNet18TB
 from model import ResNet18TBPretrained
+from model import DenseNet121TB
+from model import DenseNet121TBScratch
 from data import get_dataloaders, get_transforms, all_images
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #model = tbxrayCNN()
-model = ResNet18TB()
+#model = ResNet18TB()
 #model = ResNet18TBPretrained()
+#model = DenseNet121TB()
+model = DenseNet121TBScratch()
 model = model.to(device)
 
 criterion = nn.CrossEntropyLoss()
@@ -19,7 +23,7 @@ if use_differential_lr:
     backbone_params = []
     fc_params = []
     for name, param in model.named_parameters():
-        if name.startswith("resnet.fc"):
+        if name.startswith("densenet.classifier"):
             fc_params.append(param)
         else:
             backbone_params.append(param)
