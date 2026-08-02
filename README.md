@@ -11,7 +11,7 @@ The outcome measured is the train/test *generalization gap* (not just raw accura
 ## Method
 
 - **Data:** Montgomery County (138 images) + Shenzhen (662 images) TB chest X-ray datasets (NLM/NIH) — 800 images total combined
-- **Preprocessing:** Grayscale conversion (1 channel), resized to 224×224 (matches ImageNet input size, chosen ahead of transfer learning experiments so the pipeline doesn't need reworking)
+- **Preprocessing:** Grayscale conversion (1 channel), resized to 224×224 (matches ImageNet input size, chosen ahead of transfer learning experiments so the pipeline doesn't need reworking). Source images are pre-resized and cached to disk once (`cache_images.py`) rather than decoded/resized fresh every epoch — see Known bugs.
 - **Split:** 90/10 train/test (720 train / 80 test), shuffled with a **fixed random seed (42)** before splitting, so every experimental condition trains/tests on the identical split — critical for fair comparison across conditions (see Known bugs)
 - **Baseline:** CNN trained from scratch — 3 conv layers (1→8→16→32 channels), 3×3 kernels, padding=1, max pooling after each conv, flatten to 25,088, linear output to 2 classes
 - **Capacity control — ResNet-18:** ResNet-18, randomly initialized (`weights=None`) — `conv1` built directly for 1-channel input, `fc` replaced with `Linear(512, 2)`. Isolates the effect of model capacity/architecture from the effect of pretraining.
@@ -42,8 +42,6 @@ All results below use the fixed seeded split (seed=42), `augment=True`, 15 epoch
 
 *No-augmentation baseline/ResNet-18-scratch rows omitted for brevity — see git history; both showed larger gaps than their augmented counterparts (15.42 pts and 18.47 pts respectively).*
 
-*AUC, sensitivity, specificity not yet computed.*
-
 **Architecture alone does not reduce the gap.** No-augmentation ResNet-18 showed a larger gap than the no-augmentation baseline CNN, not a smaller one — greater capacity appears to increase overfitting when nothing else regularizes it.
 
 **Augmentation's effect differs by architecture.** For the baseline CNN, augmentation shrinks the gap but costs real test accuracy. For scratch ResNet-18 (uniform LR), augmentation's effect is larger and cleaner.
@@ -60,13 +58,35 @@ This means differential LR does two separate jobs:
 
 **The pretraining effect replicates in DenseNet-121, but at a different magnitude.** Holding LR strategy constant (differential, matching the ResNet-18 control), DenseNet-121 scratch (81.25% test acc, 2.92 pt gap) vs. DenseNet-121 pretrained (90.00% test acc, 9.44 pt gap) shows the same qualitative pattern as ResNet-18: pretraining improves accuracy while worsening the gap. The magnitude differs meaningfully, however. DenseNet-121's accuracy gain from pretraining (+8.75 pts) is more than three times ResNet-18's (+2.5 pts), while its gap cost (+6.52 pts) is smaller than ResNet-18's (+10.55 pts). In other words, DenseNet-121 gets a larger accuracy benefit from pretraining for a smaller generalization-gap cost than ResNet-18 does — the trade-off is directionally the same across both architectures, but quantitatively more favorable for DenseNet-121. This directly answers the "does this effect differ between ResNet-18 and DenseNet-121" clause of the research question: yes, the direction of the effect is consistent, but its size is architecture-dependent.
 
+## AUC / Sensitivity / Specificity
+
+Accuracy alone can hide class-level failure modes, particularly relevant in a TB screening context where a missed TB case (false negative) is a far costlier error than a false alarm (false positive) — a missed case goes untreated and can continue to spread, while a false alarm just costs a follow-up test. AUC, sensitivity, and specificity were computed for all five conditions to check for this directly, using each model's saved softmax probability for the TB class (`probs[:, 1]`) against the true labels.
+
+**Note on comparability:** these five runs were re-run after the image caching fix (see Known bugs) to add prediction-saving, so the underlying train/test accuracy numbers differ slightly from the original results table above — consistent with the run-to-run sampling noise already documented on this 80-image test set (see Limitations), not a new source of error.
+
+| Model | Test Acc | AUC | Sensitivity | Specificity |
+|---|---|---|---|---|
+| Baseline CNN | 81.25% | 0.8586 | 0.7297 | 0.8837 |
+| ResNet-18 (scratch) | 81.25% | 0.8906 | 0.7297 | 0.8837 |
+| ResNet-18 (pretrained) | 92.50% | 0.9221 | 0.9189 | 0.9302 |
+| DenseNet-121 (scratch) | 76.25% | 0.8699 | 0.6757 | 0.8372 |
+| DenseNet-121 (pretrained) | 87.50% | 0.9302 | 0.8108 | 0.9302 |
+
+*Sensitivity/specificity computed at the standard 0.5 probability threshold — see note below on why this may not be the most clinically appropriate choice for this task.*
+
+**Every model is meaningfully better at correctly identifying non-TB cases than TB cases (specificity > sensitivity in all five rows).** ResNet-18 (pretrained) is the strongest and most balanced model overall — highest sensitivity (0.9189) and tied-highest specificity (0.9302) — while DenseNet-121 (scratch) is the weakest on both.
+
+**AUC and threshold-based metrics (sensitivity/specificity) can disagree because they're measuring different things.** Baseline CNN and ResNet-18 (scratch) land on identical sensitivity and specificity values despite different AUC scores (0.8586 vs. 0.8906). Sensitivity/specificity are computed at one fixed decision threshold (0.5 here); AUC instead measures how well a model's probability scores rank TB cases above non-TB cases *across every possible threshold*. Two models can therefore make identical yes/no decisions at one specific cutoff while still having genuinely different underlying confidence calibration — which is what AUC is detecting here even though sensitivity/specificity look the same.
+
+**The 0.5 threshold used above is a default, not a clinically justified choice, and this project's own cost asymmetry argues against it.** [YOUR PARAGRAPH HERE — replace with your own reasoning on why a lower threshold would likely be more appropriate given that missing a real TB case is worse than a false alarm, and what that trades off against.]
+
 ## Known bugs already hit and fixed
 
 - **Unseeded random split (significant, fixed):** produced accuracy swings up to 20 points between otherwise-identical runs on the 80-image test set. Fixed via `random.seed(42)` before `random.shuffle(all_images)`.
 - `matplotlib.transforms` import shadowing `torchvision.transforms` — fixed.
 - `DataLoader` missing import — fixed.
 - Training loop referencing `train_loader` before creation — fixed.
-- `num_workers` slowdown — bumped to 6, `pin_memory=True` added to both `DataLoader`s. GPU utilization still caps well below 100% during training — root cause is full-resolution source images (Montgomery ~4892×4020px) being decoded/resized fresh every epoch on CPU. Proper fix (pre-resize/cache to disk) identified, not yet implemented.
+- `num_workers` slowdown — bumped to 6, `pin_memory=True` added to both `DataLoader`s. GPU utilization still capped well below 100% during training — root cause was full-resolution source images (Montgomery ~4892×4020px) being decoded/resized fresh every epoch on CPU. Fixed via `cache_images.py`, a one-time script that pre-resizes all source images to 224×224 grayscale and caches them to `data/cache/`; `data.py`'s `collect_images()` calls now point at the cached folders.
 - Single `get_transforms()` applied before split — fixed via pre-split-then-two-datasets approach.
 - **Uniform learning rate on pretrained ResNet-18 (significant, fixed):** produced the worst gap of any condition (28.61 pts). Fixed via differential learning rates through optimizer parameter groups (backbone `lr=0.0001`, head `lr=0.001`, split via `model.named_parameters()` filtering on the head's attribute name — `"resnet.fc"` for ResNet-18, `"densenet.classifier"` for DenseNet-121). LR strategy is now a standalone `use_differential_lr` flag in `train.py`, decoupled from which model is active.
 
@@ -74,20 +94,23 @@ This means differential LR does two separate jobs:
 
 - Dataset size (~800 images) small relative to model capacity — visible overfitting in most conditions
 - Single-center-ish data, no external validation set, no class imbalance check yet
-- Test set is small (80 images, ~1.25 pts/image) — real sampling noise
+- Test set is small (80 images, ~1.25 pts/image) — real sampling noise. Confirmed directly: the five AUC/sensitivity/specificity runs (re-run after the caching fix) produced train/test accuracy numbers a few points off from the original results table above on the same model/data/split, differing only in which weights the optimizer happened to land on
 - Labels from filename suffix, not free-text radiologist findings
 - Single fixed 90/10 split (seed=42) — k-fold cross-validation is a reasonable future extension
 - Capacity controls (scratch runs) exist for both architectures, but each only under differential LR — neither was tested under uniform LR, so the "differential LR provides general optimization regularization independent of pretraining" finding (established for ResNet-18) was assumed to hold for DenseNet-121 rather than separately re-confirmed there
 - Augmentation hyperparameters chosen via one informal A/B comparison on an unseeded split, not a systematic sweep
 - Earlier pretrained-vs-scratch comparisons (both uniform-LR and differential-LR) each changed two things at once; resolved via the scratch-differential-LR control runs above — the *original* pretrained-vs-scratch numbers reported in earlier project notes should not be read as isolating pretraining's effect on their own
 - The `0.0001`/`0.001` differential LR split was carried over unchanged to every scratch/architecture combination — never separately tuned per model, only ever validated as "better than uniform," not shown to be optimal
+- Sensitivity/specificity are reported at the default 0.5 probability threshold, which is not necessarily the right choice for a screening task where false negatives are costlier than false positives — see AUC / Sensitivity / Specificity section above
 
 ## Setup
 
 ```bash
-pip install torch torchvision pillow
+pip install torch torchvision pillow scikit-learn
+python cache_images.py   # one-time: pre-resize source images to data/cache/
 python data.py    # sanity check: prints dataset counts and one batch shape.
 python train.py   # trains selected model for 15 epochs, then evaluates on test set.
+python compute_metrics.py   # computes AUC/sensitivity/specificity from saved predictions.
 ```
 
 ## Status
@@ -103,9 +126,9 @@ python train.py   # trains selected model for 15 epochs, then evaluates on test 
 - [x] Control run: scratch ResNet-18 with differential-LR parameter grouping
 - [x] Transfer learning: DenseNet-121 (pretrained) — conv0 averaging, differential-LR results recorded
 - [x] Control run: scratch DenseNet-121 with differential-LR parameter grouping
-- [ ] Housekeeping: pre-resize/cache source images to reduce CPU bottleneck
+- [x] Housekeeping: pre-resize/cache source images to reduce CPU bottleneck
+- [x] AUC / sensitivity / specificity
 - [ ] W&B experiment tracking
-- [ ] AUC / sensitivity / specificity
 - [ ] FastAPI deployment endpoint
 - [ ] 500-word writeup
 
