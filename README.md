@@ -2,6 +2,8 @@
 
 Tuberculosis detection from chest X-rays using transfer learning, built as Project 1 of an Honours-track medical computer vision portfolio.
 
+> A condensed, prose version of this project (question, method, results, limitations, ~500 words) is in [`WRITEUP.md`](./WRITEUP.md) — written for reuse in application materials.
+
 ## Question
 
 **Does ImageNet pretraining reduce the train/test generalization gap in TB detection from chest X-rays under a small-data regime (~800 images, Montgomery + Shenzhen), independent of the increase in model capacity — and does this effect differ between ResNet-18 and DenseNet-121?**
@@ -103,6 +105,6 @@ python compute_metrics.py   # computes AUC/sensitivity/specificity from saved pr
 - [x] ResNet-18 (scratch + pretrained), DenseNet-121 (scratch + pretrained) — all under uniform and/or differential LR as applicable
 - [x] Image caching (CPU bottleneck fix)
 - [x] AUC / sensitivity / specificity
+- [x] 500-word writeup — see [`WRITEUP.md`](./WRITEUP.md)
 - [ ] W&B experiment tracking
 - [ ] FastAPI deployment endpoint
-- [ ] 500-word writeup
