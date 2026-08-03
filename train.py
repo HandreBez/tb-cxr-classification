@@ -15,6 +15,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = DenseNet121TBScratch()
 model = model.to(device)
 
+#TODO FastAPI
+
 run_name = "densenet121_scratch"
 
 criterion = nn.CrossEntropyLoss()
