@@ -1,6 +1,7 @@
 data/
 *.pt
 *.pth
+!resnet18_pretrained_weights.pt
 __pycache__/
 .ipynb_checkpoints/
 .DS_Store
