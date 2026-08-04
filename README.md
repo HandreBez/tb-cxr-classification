@@ -26,7 +26,7 @@ The outcome measured is the train/test *generalization gap* (not just raw accura
 - **Augmentation (train set only):** `RandomCrop(224, padding=12)` + `ColorJitter(brightness=0.1, contrast=0.1)`. No horizontal flip (anatomically invalid for chest X-rays). `saturation`/`hue` left untouched (meaningless on grayscale).
 - **Training:** CrossEntropyLoss, 15 epochs, batch size 32, for every condition.
 - **Tracking:** not yet in W&B — currently plain console output.
-- **Deployment:** FastAPI endpoint not yet built.
+- **Deployment:** FastAPI endpoint (`app.py`) wraps `ResNet18TBPretrained`, loaded once at startup. Accepts an uploaded image, returns the TB-class probability as JSON — see Setup below.
 
 ## Results
 
@@ -92,6 +92,21 @@ python train.py   # trains selected model for 15 epochs, then evaluates on test 
 python compute_metrics.py   # computes AUC/sensitivity/specificity from saved predictions.
 ```
 
+### Running the deployment endpoint
+
+Requires `resnet18_pretrained_weights.pt` in the repo root (produced by `train.py` with `model = ResNet18TBPretrained()` and `run_name = "resnet18_pretrained"`).
+
+```bash
+pip install fastapi uvicorn python-multipart
+uvicorn app:app --reload
+```
+
+Then open `http://127.0.0.1:8000/docs` for the interactive test page, or POST an image file to `http://127.0.0.1:8000/predict`. Response shape:
+
+```json
+{"tb_probability": 0.00014278513845056295}
+```
+
 ## References
 
 - Jaeger S, Candemir S, Antani S, Wáng YX, Lu PX, Thoma G. "Two public chest X-ray datasets for computer-aided screening of pulmonary diseases." *Quantitative Imaging in Medicine and Surgery*, 2014.
@@ -106,5 +121,5 @@ python compute_metrics.py   # computes AUC/sensitivity/specificity from saved pr
 - [x] Image caching (CPU bottleneck fix)
 - [x] AUC / sensitivity / specificity
 - [x] 500-word writeup — see [`WRITEUP.md`](./WRITEUP.md)
+- [x] FastAPI deployment endpoint — see `app.py` / `predict.py`
 - [ ] W&B experiment tracking
-- [ ] FastAPI deployment endpoint
