@@ -10,14 +10,13 @@ from data import get_dataloaders, get_transforms, all_images
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #model = tbxrayCNN()
 #model = ResNet18TB()
-#model = ResNet18TBPretrained()
+model = ResNet18TBPretrained()
 #model = DenseNet121TB()
-model = DenseNet121TBScratch()
+#model = DenseNet121TBScratch()
 model = model.to(device)
 
-#TODO FastAPI
 
-run_name = "densenet121_scratch"
+run_name = "resnet18_pretrained"
 
 criterion = nn.CrossEntropyLoss()
 
@@ -27,7 +26,7 @@ if use_differential_lr:
     backbone_params = []
     fc_params = []
     for name, param in model.named_parameters():
-        if name.startswith("densenet.classifier"):
+        if name.startswith("resnet.fc"):
             fc_params.append(param)
         else:
             backbone_params.append(param)
@@ -106,6 +105,7 @@ if __name__ == "__main__":
     
     test_loss, test_accuracy, all_labels, all_probs = evaluate(model, test_loader, criterion, device)
     torch.save({"labels": all_labels, "probs": all_probs}, f"{run_name}_predictions.pt")
+    torch.save(model.state_dict(), f"{run_name}_weights.pt")
     print(f"\nTest Loss: {test_loss:.4f}  Test Accuracy: {test_accuracy:.2f}%")
 
 
